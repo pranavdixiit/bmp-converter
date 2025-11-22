@@ -5,7 +5,7 @@ DisplayBMP Maker is a fast and free online tool that converts images into **24-b
 Perfect for displays like **ST7735, ST7789, ILI9341, SSD1306, SH1106**, and any TFT/OLED modules used with **ESP32 / Arduino**.
 
 🔗 **Try it here:**  
-(https://pranavdixiit.github.io/bmp-converter/)
+https://pranavdixiit.github.io/bmp-converter
 
 ---
 
