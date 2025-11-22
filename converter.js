@@ -113,25 +113,29 @@ function drawToCanvas() {
 downloadBtn.addEventListener('click', () => {
   const [w, h] = getResolution();
 
-  const imageData = ctx.getImageData(0, 0, w, h).data;
+  canvas.width = w;
+  canvas.height = h;
+  drawToCanvas();
 
+  const imageData = ctx.getImageData(0, 0, w, h).data;
   const blob = makeBMP(w, h, imageData);
 
-  const cleanName = `bmp_${Date.now()}.bmp`;
-  const safeName = cleanName.normalize("NFKD").replace(/[^\x20-\x7E]/g, "");
+  const fileName = `img_${Date.now()}.bmp`;
 
-  // FIX: wrap Blob into real File
-  const file = new File([blob], safeName, { type: "image/bmp" });
+  const url = window.URL.createObjectURL(
+      new Blob([blob], { type: "application/octet-stream" })
+  );
 
-  const url = URL.createObjectURL(file);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = safeName;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
+
 
 
 // ===== Reset =====
@@ -203,6 +207,7 @@ for (let y = 0; y < height; y++) {
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
 
 
 
