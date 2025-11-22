@@ -113,20 +113,26 @@ function drawToCanvas() {
 downloadBtn.addEventListener('click', () => {
   const [w, h] = getResolution();
 
-  // Get RGBA pixel data from canvas
   const imageData = ctx.getImageData(0, 0, w, h).data;
 
-  // Make BMP correctly
   const blob = makeBMP(w, h, imageData);
 
-  const url = URL.createObjectURL(blob);
+  const cleanName = `bmp_${Date.now()}.bmp`;
+  const safeName = cleanName.normalize("NFKD").replace(/[^\x20-\x7E]/g, "");
+
+  // FIX: wrap Blob into real File
+  const file = new File([blob], safeName, { type: "image/bmp" });
+
+  const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
-  const cleanName = `bmp_${Date.now()}.bmp`;
-  a.download = cleanName.normalize("NFKD").replace(/[^\x20-\x7E]/g, "");
+  a.download = safeName;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
+
 
 // ===== Reset =====
 
@@ -197,6 +203,7 @@ for (let y = 0; y < height; y++) {
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
 
 
 
