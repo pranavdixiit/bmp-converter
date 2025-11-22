@@ -1,4 +1,4 @@
-// converter.js: Browser-only JPG/PNG -> 24-bit BMP, with presets, fit/fill/stretch, and soft UI hooks.
+// converter.js: Browser-only JPG/PNG -> 24-bit BMP
 
 const fileInput = document.getElementById('fileInput');
 const dropArea = document.getElementById('dropArea');
@@ -27,11 +27,17 @@ resolutionSelect.addEventListener('change', () => {
     drawToCanvas();
   }
 });
-scaleModeSelect && scaleModeSelect.addEventListener('change', () => lastImage && drawToCanvas());
+
+scaleModeSelect.addEventListener('change', () => lastImage && drawToCanvas());
 
 // Drag/drop UX
-dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.borderColor = 'rgba(255,255,255,0.28)'; });
-dropArea.addEventListener('dragleave', () => { dropArea.style.borderColor = 'rgba(255,255,255,0.12)'; });
+dropArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropArea.style.borderColor = 'rgba(255,255,255,0.28)';
+});
+dropArea.addEventListener('dragleave', () => {
+  dropArea.style.borderColor = 'rgba(255,255,255,0.12)';
+});
 dropArea.addEventListener('drop', e => {
   e.preventDefault();
   dropArea.style.borderColor = 'rgba(255,255,255,0.12)';
@@ -39,8 +45,9 @@ dropArea.addEventListener('drop', e => {
 });
 fileInput.addEventListener('change', e => loadImage(e.target.files[0]));
 
-// helpers
-function getResolution(){
+// ===== Helpers =====
+
+function getResolution() {
   if (resolutionSelect.value === 'custom') {
     const w = Math.max(1, parseInt(customW.value) || 160);
     const h = Math.max(1, parseInt(customH.value) || 80);
@@ -49,13 +56,13 @@ function getResolution(){
   return resolutionSelect.value.split('x').map(Number);
 }
 
-function resizeCanvasToSelection(){
-  const [w,h] = getResolution();
+function resizeCanvasToSelection() {
+  const [w, h] = getResolution();
   canvas.width = w;
   canvas.height = h;
 }
 
-function loadImage(file){
+function loadImage(file) {
   if (!file) return;
   const img = new Image();
   resizeCanvasToSelection();
@@ -69,90 +76,119 @@ function loadImage(file){
   img.src = URL.createObjectURL(file);
 }
 
-function drawToCanvas(){
+function drawToCanvas() {
   if (!lastImage) return;
-  const [w,h] = getResolution();
-  const mode = (scaleModeSelect && scaleModeSelect.value) || 'stretch';
+  const [w, h] = getResolution();
+  const mode = scaleModeSelect.value || 'stretch';
   canvas.width = w;
   canvas.height = h;
-  ctx.clearRect(0,0,w,h);
+  ctx.clearRect(0, 0, w, h);
 
-  // compute draw dims
   const img = lastImage;
+
   if (mode === 'stretch') {
-    ctx.drawImage(img,0,0,w,h);
+    ctx.drawImage(img, 0, 0, w, h);
     return;
   }
-  const imgRatio = img.width / img.height;
-  const canvasRatio = w / h;
+
   let drawW, drawH, offX, offY;
 
-  if (mode === 'fit'){
+  if (mode === 'fit') {
     const scale = Math.min(w / img.width, h / img.height);
     drawW = img.width * scale;
     drawH = img.height * scale;
-    offX = (w - drawW) / 2;
-    offY = (h - drawH) / 2;
-  } else { // fill
+  } else {
     const scale = Math.max(w / img.width, h / img.height);
     drawW = img.width * scale;
     drawH = img.height * scale;
-    offX = (w - drawW) / 2;
-    offY = (h - drawH) / 2;
   }
+
+  offX = (w - drawW) / 2;
+  offY = (h - drawH) / 2;
   ctx.drawImage(img, offX, offY, drawW, drawH);
 }
 
-// download BMP
+// ===== Download BMP =====
+
 downloadBtn.addEventListener('click', () => {
-  const blob = makeBMP();
+  const [w, h] = getResolution();
+
+  // Get RGBA pixel data from canvas
+  const imageData = ctx.getImageData(0, 0, w, h).data;
+
+  // Make BMP correctly
+  const blob = makeBMP(w, h, imageData);
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const [w,h] = getResolution();
   a.href = url;
   a.download = `image_${w}x${h}.bmp`;
   a.click();
   URL.revokeObjectURL(url);
 });
 
-// reset
+// ===== Reset =====
+
 resetBtn.addEventListener('click', () => {
   lastImage = null;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   downloadBtn.style.display = 'none';
   resetBtn.style.display = 'none';
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
 
-// BMP builder (24-bit top-down)
-function makeBMP(){
-  const w = canvas.width;
-  const h = canvas.height;
-  const imgData = ctx.getImageData(0,0,w,h).data;
-  const rowSize = w * 3;
-  const imageSize = rowSize * h;
-  const fileSize = 54 + imageSize;
+// ===== BMP Builder (24-bit, bottom-up, BGR) =====
+
+function makeBMP(width, height, imageData) {
+  const rowSize = width * 3;
+  const padding = (4 - (rowSize % 4)) % 4;
+  const dataSize = (rowSize + padding) * height;
+  const fileSize = 54 + dataSize;
 
   const buffer = new ArrayBuffer(fileSize);
   const dv = new DataView(buffer);
 
-  dv.setUint8(0,0x42);
-  dv.setUint8(1,0x4D);
-  dv.setUint32(2,fileSize,true);
-  dv.setUint32(10,54,true);
-  dv.setUint32(14,40,true);
-  dv.setUint32(18,w,true);
-  dv.setInt32(22,-h,true); // negative -> top-down
-  dv.setUint16(26,1,true);
-  dv.setUint16(28,24,true);
+  let offset = 0;
 
-  let offset = 54;
-  for (let i=0;i<imgData.length;i+=4){
-    dv.setUint8(offset++, imgData[i+2]); // B
-    dv.setUint8(offset++, imgData[i+1]); // G
-    dv.setUint8(offset++, imgData[i]);   // R
+  // BMP Header
+  dv.setUint8(offset++, 0x42); // B
+  dv.setUint8(offset++, 0x4D); // M
+  dv.setUint32(offset, fileSize, true); offset += 4;
+  dv.setUint32(offset, 0, true); offset += 4;
+  dv.setUint32(offset, 54, true); offset += 4;
+
+  // DIB Header
+  dv.setUint32(offset, 40, true); offset += 4;
+  dv.setInt32(offset, width, true); offset += 4;
+  dv.setInt32(offset, height, true); offset += 4;  // bottom-up
+  dv.setUint16(offset, 1, true); offset += 2;
+  dv.setUint16(offset, 24, true); offset += 2;
+  dv.setUint32(offset, 0, true); offset += 4;
+  dv.setUint32(offset, dataSize, true); offset += 4;
+  dv.setInt32(offset, 2835, true); offset += 4;
+  dv.setInt32(offset, 2835, true); offset += 4;
+  dv.setUint32(offset, 0, true); offset += 4;
+  dv.setUint32(offset, 0, true); offset += 4;
+
+  const bytes = new Uint8Array(buffer);
+  let pos = 54;
+
+  // Write rows bottom → top
+  for (let y = height - 1; y >= 0; y--) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const r = imageData[i];
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
+
+      bytes[pos++] = b;
+      bytes[pos++] = g;
+      bytes[pos++] = r;
+    }
+
+    for (let p = 0; p < padding; p++) bytes[pos++] = 0;
   }
 
-  return new Blob([buffer], {type:'image/bmp'});
+  return new Blob([buffer], { type: "image/bmp" });
 }
