@@ -88,7 +88,7 @@ All processing happens **locally in your browser** — your images are never upl
 
 ## 🖼️ Preview
 
-![Preview](assets/background.png)
+![Preview](background.png)
 
 ---
 
