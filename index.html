@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DisplayBMP Maker — JPG/PNG to BMP Converter</title>
+
+  <!-- SEO -->
+  <meta name="description" content="DisplayBMP Maker — resize JPG/PNG and export 24-bit BMP for microcontroller screens (ST7735, ST7789, SSD1306).">
+  <meta name="keywords" content="bmp converter, esp32 bmp, tft screen bmp, st7735 bmp, st7789 bmp, microcontroller display bmp, 24-bit bmp">
+
+  <!-- Social preview -->
+  <meta property="og:title" content="DisplayBMP Maker — BMP Converter for Micro Displays">
+  <meta property="og:description" content="Resize images and export perfect 24-bit BMP files for TFT and OLED screens.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/background.png">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- Background blobs & accent image -->
+  <div class="bg-blob-layer">
+    <div class="blob blob-left"></div>
+    <div class="blob blob-right"></div>
+    <img class="art-accent" src="assets/background.png" alt="">
+  </div>
+
+  <main class="container">
+
+    <header class="header">
+      <div class="brand-text">
+        <h1>DisplayBMP Maker</h1>
+        <p class="tagline">Resize · Convert · Download — 24-bit BMP for micro displays</p>
+      </div>
+    </header>
+
+    <section class="card">
+
+      <div class="controls">
+
+        <label class="label">Preset resolution</label>
+        <select id="resolutionSelect" class="dropdown">
+          <optgroup label="TFT / ST77xx">
+            <option value="160x80">160 × 80 (ST7735S)</option>
+            <option value="128x128">128 × 128</option>
+            <option value="128x160">128 × 160</option>
+            <option value="240x240">240 × 240</option>
+            <option value="240x320">240 × 320</option>
+            <option value="320x480">320 × 480</option>
+          </optgroup>
+
+          <optgroup label="OLED">
+            <option value="128x64">128 × 64 (SSD1306)</option>
+            <option value="128x32">128 × 32</option>
+          </optgroup>
+
+          <optgroup label="Special / IPS">
+            <option value="135x240">135 × 240</option>
+            <option value="170x320">170 × 320</option>
+            <option value="172x320">172 × 320</option>
+            <option value="480x800">480 × 800</option>
+          </optgroup>
+
+          <optgroup label="Custom">
+            <option value="custom">Custom…</option>
+          </optgroup>
+        </select>
+
+        <div id="customBox" class="custom-dim" style="display:none;">
+          <input id="customW" type="number" placeholder="Width (px)">
+          <input id="customH" type="number" placeholder="Height (px)">
+        </div>
+
+        <label class="label">Scale mode</label>
+        <select id="scaleMode" class="dropdown">
+          <option value="stretch">Stretch (fill pixels)</option>
+          <option value="fit">Fit (letterbox)</option>
+          <option value="fill">Fill (crop edges)</option>
+        </select>
+
+      </div>
+
+      <!-- Upload -->
+      <div id="dropArea" class="drop-area">
+        <p>📥 Drop image here or click to upload</p>
+        <input id="fileInput" type="file" accept="image/*">
+      </div>
+
+      <!-- Scrollable preview -->
+      <div id="previewBox" class="preview-box">
+        <div class="canvas-scroll">
+          <canvas id="canvas"></canvas>
+        </div>
+      </div>
+
+      <div class="button-holder">
+        <button id="downloadBtn" class="btn primary" style="display:none;">Download BMP</button>
+        <button id="resetBtn" class="btn secondary-btn" style="display:none;">Reset</button>
+      </div>
+
+    </section>
+
+    <footer class="footer">
+      <small>DisplayBMP Maker · tuned for ESP32 / Arduino TFT displays</small><br>
+      <small>Made by Pranav</small>
+    </footer>
+
+  </main>
+
+  <script src="converter.js"></script>
+</body>
+</html>
