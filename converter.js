@@ -172,23 +172,28 @@ function makeBMP(width, height, imageData) {
   dv.setUint32(offset, 0, true); offset += 4;
 
   const bytes = new Uint8Array(buffer);
-  let pos = 54;
+ // Write pixel data bottom-up (correct BMP)
+let pos = 54;
 
-  // Write rows bottom → top
-  for (let y = height - 1; y >= 0; y--) {
+for (let y = 0; y < height; y++) {
+
+    // flip top-down canvas → bottom-up BMP
+    const srcY = height - 1 - y;
+
     for (let x = 0; x < width; x++) {
-      const i = (y * width + x) * 4;
-      const r = imageData[i];
-      const g = imageData[i + 1];
-      const b = imageData[i + 2];
+        const i = (srcY * width + x) * 4;
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
 
-      bytes[pos++] = b;
-      bytes[pos++] = g;
-      bytes[pos++] = r;
+        bytes[pos++] = b; // BMP = B
+        bytes[pos++] = g; // G
+        bytes[pos++] = r; // R
     }
 
     for (let p = 0; p < padding; p++) bytes[pos++] = 0;
-  }
+}
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
