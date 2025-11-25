@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DisplayBMP Maker — JPG/PNG to BMP Converter</title>
@@ -23,6 +24,15 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
+
+  <script>
+  function fixVH() {
+    document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  }
+  fixVH();
+  window.addEventListener('resize', fixVH);
+</script>
+
 </head>
 
 <body>
@@ -119,3 +129,4 @@
   <script src="converter.js"></script>
 </body>
 </html>
+
