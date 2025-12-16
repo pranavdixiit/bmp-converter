@@ -152,11 +152,11 @@ resetBtn.addEventListener('click', () => {
 // ===== BMP Builder (24-bit, bottom-up, BGR) =====
 
 // ===== BMP Builder (RGB565, Little Endian, TFT READY) =====
-function makeBMP(width, height, imageData) {
+function makeBMP24(width, height, imageData) {
 
-  const bytesPerPixel = 2; // RGB565
-  const rowSize = width * bytesPerPixel;
-  const dataSize = rowSize * height;
+  const bytesPerPixel = 3;
+  const rowStride = Math.ceil((width * bytesPerPixel) / 4) * 4;
+  const dataSize = rowStride * height;
   const fileSize = 54 + dataSize;
 
   const buffer = new ArrayBuffer(fileSize);
@@ -175,49 +175,33 @@ function makeBMP(width, height, imageData) {
   dv.setInt32(p, width, true); p += 4;
   dv.setInt32(p, height, true); p += 4;
   dv.setUint16(p, 1, true); p += 2;
-  dv.setUint16(p, 16, true); p += 2; // ✅ 16-bit RGB565
+  dv.setUint16(p, 24, true); p += 2; // ✅ 24-bit
   dv.setUint32(p, 0, true); p += 4;
   dv.setUint32(p, dataSize, true); p += 4;
-  dv.setUint32(p, 3780, true); p += 4;
-  dv.setUint32(p, 3780, true); p += 4;
+  dv.setUint32(p, 2835, true); p += 4;
+  dv.setUint32(p, 2835, true); p += 4;
   dv.setUint32(p, 0, true); p += 4;
   dv.setUint32(p, 0, true); p += 4;
 
-// ===== PIXEL DATA =====
-for (let y = height - 1; y >= 0; y--) {
-  for (let x = 0; x < width; x++) {
+  // ===== PIXELS (BOTTOM-UP, BGR) =====
+  let offset = 54;
 
-    const i = (y * width + x) * 4;
-    let r = imageData[i];
-    let g = imageData[i + 1];
-    let b = imageData[i + 2];
+  for (let y = height - 1; y >= 0; y--) {
+    let rowStart = offset;
 
-    // Optional dithering
-    const dither = [[0,2],[3,1]];
-    const d = dither[y & 1][x & 1] * 4;
-    r = Math.min(255, r + d);
-    g = Math.min(255, g + d);
-    b = Math.min(255, b + d);
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
 
-    // RGB565 (correct)
-    const rgb565 =
-      ((r & 0xF8) << 8) |
-      ((g & 0xFC) << 3) |
-      (b >> 3);
+      dv.setUint8(offset++, imageData[i + 2]); // B
+      dv.setUint8(offset++, imageData[i + 1]); // G
+      dv.setUint8(offset++, imageData[i]);     // R
+    }
 
-    dv.setUint16(offset, rgb565, true);
-    offset += 2;
+    // Padding
+    while (offset - rowStart < rowStride) {
+      dv.setUint8(offset++, 0);
+    }
   }
-}
-
 
   return new Blob([buffer], { type: "image/bmp" });
 }
-
-
-
-
-
-
-
-
