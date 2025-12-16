@@ -122,11 +122,13 @@ downloadBtn.addEventListener('click', () => {
 
   const fileName = `img_${Date.now()}.bmp`;
 
+
   const url = window.URL.createObjectURL(
       new Blob([blob], { type: "application/octet-stream" })
   );
 
   const a = document.createElement("a");
+
   a.href = url;
   a.download = fileName;
   document.body.appendChild(a);
@@ -207,8 +209,3 @@ for (let y = 0; y < height; y++) {
 
   return new Blob([buffer], { type: "image/bmp" });
 }
-
-
-
-
-
