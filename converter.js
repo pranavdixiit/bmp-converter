@@ -151,62 +151,68 @@ resetBtn.addEventListener('click', () => {
 
 // ===== BMP Builder (24-bit, bottom-up, BGR) =====
 
+// ===== BMP Builder (RGB565, Little Endian, TFT READY) =====
 function makeBMP(width, height, imageData) {
-  const rowSize = width * 3;
-  const padding = (4 - (rowSize % 4)) % 4;
-  const dataSize = (rowSize + padding) * height;
+
+  const bytesPerPixel = 2; // RGB565
+  const rowSize = width * bytesPerPixel;
+  const dataSize = rowSize * height;
   const fileSize = 54 + dataSize;
 
   const buffer = new ArrayBuffer(fileSize);
   const dv = new DataView(buffer);
+  let p = 0;
 
-  let offset = 0;
+  // ===== BMP HEADER =====
+  dv.setUint8(p++, 0x42); // B
+  dv.setUint8(p++, 0x4D); // M
+  dv.setUint32(p, fileSize, true); p += 4;
+  dv.setUint32(p, 0, true); p += 4;
+  dv.setUint32(p, 54, true); p += 4;
 
-  // BMP Header
-  dv.setUint8(offset++, 0x42); // B
-  dv.setUint8(offset++, 0x4D); // M
-  dv.setUint32(offset, fileSize, true); offset += 4;
-  dv.setUint32(offset, 0, true); offset += 4;
-  dv.setUint32(offset, 54, true); offset += 4;
+  // ===== DIB HEADER =====
+  dv.setUint32(p, 40, true); p += 4;
+  dv.setInt32(p, width, true); p += 4;
+  dv.setInt32(p, height, true); p += 4;
+  dv.setUint16(p, 1, true); p += 2;
+  dv.setUint16(p, 16, true); p += 2; // ✅ 16-bit RGB565
+  dv.setUint32(p, 0, true); p += 4;
+  dv.setUint32(p, dataSize, true); p += 4;
+  dv.setUint32(p, 3780, true); p += 4;
+  dv.setUint32(p, 3780, true); p += 4;
+  dv.setUint32(p, 0, true); p += 4;
+  dv.setUint32(p, 0, true); p += 4;
 
-  // DIB Header
-  dv.setUint32(offset, 40, true); offset += 4;
-  dv.setInt32(offset, width, true); offset += 4;
-  dv.setInt32(offset, height, true); offset += 4;  // bottom-up
-  dv.setUint16(offset, 1, true); offset += 2;
-  dv.setUint16(offset, 24, true); offset += 2;
-  dv.setUint32(offset, 0, true); offset += 4;
-  dv.setUint32(offset, dataSize, true); offset += 4;
-  dv.setInt32(offset, 2835, true); offset += 4;
-  dv.setInt32(offset, 2835, true); offset += 4;
-  dv.setUint32(offset, 0, true); offset += 4;
-  dv.setUint32(offset, 0, true); offset += 4;
+  // ===== PIXEL DATA (BOTTOM-UP, RGB565) =====
+  let offset = 54;
 
-  const bytes = new Uint8Array(buffer);
- // Write pixel data bottom-up (correct BMP)
-let pos = 54;
-
-for (let y = 0; y < height; y++) {
-
-    // flip top-down canvas → bottom-up BMP
-    const srcY = height - 1 - y;
-
+  for (let y = height - 1; y >= 0; y--) {
     for (let x = 0; x < width; x++) {
-        const i = (srcY * width + x) * 4;
-        const r = imageData[i];
-        const g = imageData[i + 1];
-        const b = imageData[i + 2];
 
-        bytes[pos++] = b; // BMP = B
-        bytes[pos++] = g; // G
-        bytes[pos++] = r; // R
+      const i = (y * width + x) * 4;
+      let r = imageData[i];
+      let g = imageData[i + 1];
+      let b = imageData[i + 2];
+
+      // Optional gamma correction (looks better on TFT)
+      r = Math.pow(r / 255, 0.8) * 255;
+      g = Math.pow(g / 255, 0.8) * 255;
+      b = Math.pow(b / 255, 0.8) * 255;
+
+      // Convert to RGB565
+      const rgb565 =
+        ((r >> 3) << 11) |
+        ((g >> 2) << 5) |
+        (b >> 3);
+
+      dv.setUint16(offset, rgb565, true); // Little Endian
+      offset += 2;
     }
-
-    for (let p = 0; p < padding; p++) bytes[pos++] = 0;
-}
+  }
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
 
 
 
