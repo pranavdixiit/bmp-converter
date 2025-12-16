@@ -122,9 +122,7 @@ downloadBtn.addEventListener('click', () => {
 
   const fileName = `img_${Date.now()}.bmp`;
 
-  const url = window.URL.createObjectURL(
-      new Blob([blob], { type: "application/octet-stream" })
-  );
+const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
@@ -205,4 +203,5 @@ function makeBMP(width, height, imageData) {
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
 
