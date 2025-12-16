@@ -183,35 +183,37 @@ function makeBMP(width, height, imageData) {
   dv.setUint32(p, 0, true); p += 4;
   dv.setUint32(p, 0, true); p += 4;
 
-  // ===== PIXEL DATA (BOTTOM-UP, RGB565) =====
-  let offset = 54;
+// ===== PIXEL DATA =====
+for (let y = height - 1; y >= 0; y--) {
+  for (let x = 0; x < width; x++) {
 
-  for (let y = height - 1; y >= 0; y--) {
-    for (let x = 0; x < width; x++) {
+    const i = (y * width + x) * 4;
+    let r = imageData[i];
+    let g = imageData[i + 1];
+    let b = imageData[i + 2];
 
-      const i = (y * width + x) * 4;
-      let r = imageData[i];
-      let g = imageData[i + 1];
-      let b = imageData[i + 2];
+    // Optional dithering
+    const dither = [[0,2],[3,1]];
+    const d = dither[y & 1][x & 1] * 4;
+    r = Math.min(255, r + d);
+    g = Math.min(255, g + d);
+    b = Math.min(255, b + d);
 
-      // Optional gamma correction (looks better on TFT)
-      r = Math.pow(r / 255, 0.8) * 255;
-      g = Math.pow(g / 255, 0.8) * 255;
-      b = Math.pow(b / 255, 0.8) * 255;
+    // RGB565 (correct)
+    const rgb565 =
+      ((r & 0xF8) << 8) |
+      ((g & 0xFC) << 3) |
+      (b >> 3);
 
-      // Convert to RGB565
-      const rgb565 =
-        ((r >> 3) << 11) |
-        ((g >> 2) << 5) |
-        (b >> 3);
-
-      dv.setUint16(offset, rgb565, true); // Little Endian
-      offset += 2;
-    }
+    dv.setUint16(offset, rgb565, true);
+    offset += 2;
   }
+}
+
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
 
 
 
