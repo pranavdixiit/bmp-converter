@@ -152,7 +152,7 @@ resetBtn.addEventListener('click', () => {
 // ===== BMP Builder (24-bit, bottom-up, BGR) =====
 
 // ===== BMP Builder (RGB565, Little Endian, TFT READY) =====
-function makeBMP24(width, height, imageData) {
+function makeBMP(width, height, imageData) {
 
   const bytesPerPixel = 3;
   const rowStride = Math.ceil((width * bytesPerPixel) / 4) * 4;
@@ -205,3 +205,4 @@ function makeBMP24(width, height, imageData) {
 
   return new Blob([buffer], { type: "image/bmp" });
 }
+
