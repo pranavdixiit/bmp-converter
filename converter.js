@@ -150,9 +150,10 @@ function makeRGB565(width, height, imageData) {
         ((g & 0xFC) << 3) |
         (b >> 3);
 
-      // HIGH byte first (ST7789 compatible)
-      out[p++] = rgb565 >> 8;
-      out[p++] = rgb565 & 0xFF;
+      // LOW byte first (ESP32 + TFT_eSPI compatible)
+out[p++] = rgb565 & 0xFF;
+out[p++] = rgb565 >> 8;
+
     }
   }
 
@@ -199,3 +200,4 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
+
