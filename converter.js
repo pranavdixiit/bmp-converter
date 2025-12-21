@@ -1,4 +1,6 @@
-// converter.js: Browser-only JPG/PNG -> 24-bit BMP
+// ============================================================
+// converter.js: Browser-only JPG/PNG -> RGB565 (raw, display-ready)
+// ============================================================
 
 const fileInput = document.getElementById('fileInput');
 const dropArea = document.getElementById('dropArea');
@@ -16,36 +18,47 @@ const scaleModeSelect = document.getElementById('scaleMode');
 
 let lastImage = null;
 
+// ============================================================
+// UI EVENTS
+// ============================================================
+
 resolutionSelect.addEventListener('change', () => {
-  if (resolutionSelect.value === 'custom') {
-    customBox.style.display = 'flex';
-  } else {
-    customBox.style.display = 'none';
-  }
+  customBox.style.display =
+    (resolutionSelect.value === 'custom') ? 'flex' : 'none';
+
   if (lastImage) {
     resizeCanvasToSelection();
     drawToCanvas();
   }
 });
 
-scaleModeSelect.addEventListener('change', () => lastImage && drawToCanvas());
+scaleModeSelect.addEventListener('change', () => {
+  if (lastImage) drawToCanvas();
+});
 
-// Drag/drop UX
+// Drag & Drop
 dropArea.addEventListener('dragover', e => {
   e.preventDefault();
   dropArea.style.borderColor = 'rgba(255,255,255,0.28)';
 });
+
 dropArea.addEventListener('dragleave', () => {
   dropArea.style.borderColor = 'rgba(255,255,255,0.12)';
 });
+
 dropArea.addEventListener('drop', e => {
   e.preventDefault();
   dropArea.style.borderColor = 'rgba(255,255,255,0.12)';
   loadImage(e.dataTransfer.files[0]);
 });
-fileInput.addEventListener('change', e => loadImage(e.target.files[0]));
 
-// ===== Helpers =====
+fileInput.addEventListener('change', e => {
+  loadImage(e.target.files[0]);
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
 
 function getResolution() {
   if (resolutionSelect.value === 'custom') {
@@ -64,8 +77,10 @@ function resizeCanvasToSelection() {
 
 function loadImage(file) {
   if (!file) return;
+
   const img = new Image();
   resizeCanvasToSelection();
+
   img.onload = () => {
     lastImage = img;
     drawToCanvas();
@@ -73,13 +88,16 @@ function loadImage(file) {
     resetBtn.style.display = 'inline-block';
     previewBox.classList.add('loaded');
   };
+
   img.src = URL.createObjectURL(file);
 }
 
 function drawToCanvas() {
   if (!lastImage) return;
+
   const [w, h] = getResolution();
   const mode = scaleModeSelect.value || 'stretch';
+
   canvas.width = w;
   canvas.height = h;
   ctx.clearRect(0, 0, w, h);
@@ -91,7 +109,8 @@ function drawToCanvas() {
     return;
   }
 
-  let drawW, drawH, offX, offY;
+  let drawW, drawH;
+  let offX = 0, offY = 0;
 
   if (mode === 'fit') {
     const scale = Math.min(w / img.width, h / img.height);
@@ -105,10 +124,44 @@ function drawToCanvas() {
 
   offX = (w - drawW) / 2;
   offY = (h - drawH) / 2;
+
   ctx.drawImage(img, offX, offY, drawW, drawH);
 }
 
-// ===== Download BMP =====
+// ============================================================
+// RGB565 BUILDER (TOP-DOWN, NO HEADER)
+// ============================================================
+
+function makeRGB565(width, height, imageData) {
+  const buffer = new ArrayBuffer(width * height * 2);
+  const out = new Uint8Array(buffer);
+
+  let p = 0;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const r = imageData[i];
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
+
+      const rgb565 =
+        ((r & 0xF8) << 8) |
+        ((g & 0xFC) << 3) |
+        (b >> 3);
+
+      // HIGH byte first (ST7789 compatible)
+      out[p++] = rgb565 >> 8;
+      out[p++] = rgb565 & 0xFF;
+    }
+  }
+
+  return new Blob([buffer], { type: "application/octet-stream" });
+}
+
+// ============================================================
+// DOWNLOAD RGB565
+// ============================================================
 
 downloadBtn.addEventListener('click', () => {
   const [w, h] = getResolution();
@@ -118,15 +171,11 @@ downloadBtn.addEventListener('click', () => {
   drawToCanvas();
 
   const imageData = ctx.getImageData(0, 0, w, h).data;
-  const blob = makeBMP(w, h, imageData);
+  const blob = makeRGB565(w, h, imageData);
 
-  const fileName = `img_${Date.now()}.bmp`;
+  const fileName = `img_${w}x${h}.rgb565`;
 
-
-  const url = window.URL.createObjectURL(
-      new Blob([blob], { type: "application/octet-stream" })
-  );
-
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
 
   a.href = url;
@@ -138,9 +187,9 @@ downloadBtn.addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
-
-
-// ===== Reset =====
+// ============================================================
+// RESET
+// ============================================================
 
 resetBtn.addEventListener('click', () => {
   lastImage = null;
@@ -150,62 +199,3 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
-
-// ===== BMP Builder (24-bit, bottom-up, BGR) =====
-
-function makeBMP(width, height, imageData) {
-  const rowSize = width * 3;
-  const padding = (4 - (rowSize % 4)) % 4;
-  const dataSize = (rowSize + padding) * height;
-  const fileSize = 54 + dataSize;
-
-  const buffer = new ArrayBuffer(fileSize);
-  const dv = new DataView(buffer);
-
-  let offset = 0;
-
-  // BMP Header
-  dv.setUint8(offset++, 0x42); // B
-  dv.setUint8(offset++, 0x4D); // M
-  dv.setUint32(offset, fileSize, true); offset += 4;
-  dv.setUint32(offset, 0, true); offset += 4;
-  dv.setUint32(offset, 54, true); offset += 4;
-
-  // DIB Header
-  dv.setUint32(offset, 40, true); offset += 4;
-  dv.setInt32(offset, width, true); offset += 4;
-  dv.setInt32(offset, height, true); offset += 4;  // bottom-up
-  dv.setUint16(offset, 1, true); offset += 2;
-  dv.setUint16(offset, 24, true); offset += 2;
-  dv.setUint32(offset, 0, true); offset += 4;
-  dv.setUint32(offset, dataSize, true); offset += 4;
-  dv.setInt32(offset, 2835, true); offset += 4;
-  dv.setInt32(offset, 2835, true); offset += 4;
-  dv.setUint32(offset, 0, true); offset += 4;
-  dv.setUint32(offset, 0, true); offset += 4;
-
-  const bytes = new Uint8Array(buffer);
- // Write pixel data bottom-up (correct BMP)
-let pos = 54;
-
-for (let y = 0; y < height; y++) {
-
-    // flip top-down canvas → bottom-up BMP
-    const srcY = height - 1 - y;
-
-    for (let x = 0; x < width; x++) {
-        const i = (srcY * width + x) * 4;
-        const r = imageData[i];
-        const g = imageData[i + 1];
-        const b = imageData[i + 2];
-
-        bytes[pos++] = b; // BMP = B
-        bytes[pos++] = g; // G
-        bytes[pos++] = r; // R
-    }
-
-    for (let p = 0; p < padding; p++) bytes[pos++] = 0;
-}
-
-  return new Blob([buffer], { type: "image/bmp" });
-}
