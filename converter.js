@@ -142,11 +142,11 @@ function makeRGB565(width, height, imageData) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
 
-        const r = imageData[i];
+        const b = imageData[i];
 
 
       const g = imageData[i + 1];
-      const b = imageData[i + 2];
+      const r = imageData[i + 2];
 
       const rgb565 =
         ((r & 0xF8) << 8) |
@@ -203,6 +203,7 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
+
 
 
 
