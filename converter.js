@@ -151,9 +151,9 @@ function makeRGB565(width, height, imageData) {
         ((g & 0xFC) << 3) |
         (b >> 3);
 
-      // BIG ENDIAN
-      out[p++] = rgb565 >> 8;
+      // little ENDIAN
       out[p++] = rgb565 & 0xFF;
+      out[p++] = rgb565 >> 8;
     }
   }
 
@@ -200,6 +200,7 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
+
 
 
 
