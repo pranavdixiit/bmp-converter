@@ -142,21 +142,20 @@ function makeRGB565(width, height, imageData) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
 
-      const b = imageData[i];
-
-
+      // NOTE: swap R/B here because ST7735 is BGR
+      const b = imageData[i];       // was R
       const g = imageData[i + 1];
-      const r = imageData[i + 2];
+      const r = imageData[i + 2];  // was B
 
       const rgb565 =
         ((r & 0xF8) << 8) |
         ((g & 0xFC) << 3) |
         (b >> 3);
 
-      // LOW byte first (ESP32 + TFT_eSPI compatible)
-
-out[p++] = rgb565 >> 8;
+      // BIG endian (Adafruit expects this)
+      out[p++] = rgb565 >> 8;
       out[p++] = rgb565 & 0xFF;
+
     }
   }
 
@@ -203,6 +202,7 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
+
 
 
 
