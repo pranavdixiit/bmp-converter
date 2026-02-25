@@ -142,17 +142,21 @@ function makeRGB565(width, height, imageData) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
 
-      const r = imageData[i];
-const g = imageData[i + 1];
-const b = imageData[i + 2];
+        const r = imageData[i];
 
-const rgb565 =
-  ((r & 0xF8) << 8) |
-  ((g & 0xFC) << 3) |
-  (b >> 3);
 
-out[p++] = rgb565 >> 8;
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
+
+      const rgb565 =
+        ((r & 0xF8) << 8) |
+        ((g & 0xFC) << 3) |
+        (b >> 3);
+
+      // LOW byte first (ESP32 + TFT_eSPI compatible)
 out[p++] = rgb565 & 0xFF;
+out[p++] = rgb565 >> 8;
+
     }
   }
 
@@ -199,6 +203,7 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
+
 
 
 
