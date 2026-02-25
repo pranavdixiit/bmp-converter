@@ -143,17 +143,16 @@ function makeRGB565(width, height, imageData) {
       const i = (y * width + x) * 4;
 
       const r = imageData[i];
-      const g = imageData[i + 1];
-      const b = imageData[i + 2];
+const g = imageData[i + 1];
+const b = imageData[i + 2];
 
-      const rgb565 =
-        ((r & 0xF8) << 8) |
-        ((g & 0xFC) << 3) |
-        (b >> 3);
+const rgb565 =
+  ((r & 0xF8) << 8) |
+  ((g & 0xFC) << 3) |
+  (b >> 3);
 
-      // BIG endian (Adafruit native)
-      out[p++] = rgb565 >> 8;
-      out[p++] = rgb565 & 0xFF;
+out[p++] = rgb565 >> 8;
+out[p++] = rgb565 & 0xFF;
     }
   }
 
@@ -200,6 +199,7 @@ resetBtn.addEventListener('click', () => {
   previewBox.classList.remove('loaded');
   fileInput.value = '';
 });
+
 
 
 
